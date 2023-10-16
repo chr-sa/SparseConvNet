@@ -9,21 +9,41 @@ import torch.nn as nn
 import sparseconvnet as scn
 from data import get_iterators
 
+
 # two-dimensional SparseConvNet
 class Model(nn.Module):
     def __init__(self):
         nn.Module.__init__(self)
         self.sparseModel = scn.Sequential(
-          scn.SparseVggNet(2, 3, [
-            ['C', 8, ], ['C', 8], 'MP',
-            ['C', 16], ['C', 16], 'MP',
-            ['C', 16, 8], ['C', 16, 8], 'MP',
-            ['C', 24, 8], ['C', 24, 8], 'MP']),
-          scn.Convolution(2, 32, 64, 5, 1, False),
-          scn.BatchNormReLU(64),
-          scn.SparseToDense(2, 64))
-        self.spatial_size= self.sparseModel.input_spatial_size(torch.LongTensor([1, 1]))
-        self.inputLayer = scn.InputLayer(2,self.spatial_size,2)
+            scn.SparseVggNet(
+                2,
+                3,
+                [
+                    [
+                        "C",
+                        8,
+                    ],
+                    ["C", 8],
+                    "MP",
+                    ["C", 16],
+                    ["C", 16],
+                    "MP",
+                    ["C", 16, 8],
+                    ["C", 16, 8],
+                    "MP",
+                    ["C", 24, 8],
+                    ["C", 24, 8],
+                    "MP",
+                ],
+            ),
+            scn.Convolution(2, 32, 64, 5, 1, False),
+            scn.BatchNormReLU(64),
+            scn.SparseToDense(2, 64),
+        )
+        self.spatial_size = self.sparseModel.input_spatial_size(
+            torch.LongTensor([1, 1])
+        )
+        self.inputLayer = scn.InputLayer(2, self.spatial_size, 2)
         self.linear = nn.Linear(64, 183)
 
     def forward(self, x):
@@ -33,16 +53,21 @@ class Model(nn.Module):
         x = self.linear(x)
         return x
 
+
 model = Model()
-scale=63
+scale = 63
 dataset = get_iterators(model.spatial_size, scale)
-print('Input spatial size:', model.spatial_size, 'Data scale:', scale)
+print("Input spatial size:", model.spatial_size, "Data scale:", scale)
 
 scn.ClassificationTrainValidate(
-    model, dataset,
-    {'n_epochs': 100,
-     'initial_lr': 0.1,
-     'lr_decay': 0.05,
-     'weight_decay': 1e-4,
-     'use_cuda': torch.cuda.is_available(),
-     'check_point': False, })
+    model,
+    dataset,
+    {
+        "n_epochs": 100,
+        "initial_lr": 0.1,
+        "lr_decay": 0.05,
+        "weight_decay": 1e-4,
+        "use_cuda": torch.cuda.is_available(),
+        "check_point": False,
+    },
+)

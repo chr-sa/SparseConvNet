@@ -7,6 +7,7 @@
 import torch, torch.utils.checkpoint
 from .utils import checkpoint101
 
+
 class Sequential(torch.nn.Sequential):
     def input_spatial_size(self, out_size):
         for m in reversed(self._modules):
@@ -19,17 +20,17 @@ class Sequential(torch.nn.Sequential):
             r.append(m)
         for m in x:
             r.append(m)
-        return r            
-        
+        return r
+
     def add(self, module):
         self._modules[str(len(self._modules))] = module
         return self
-    
+
     def insert(self, index, module):
         for i in range(len(self._modules), index, -1):
             self._modules[str(i)] = self._modules[str(i - 1)]
         self._modules[str(index)] = module
-        
+
     def append(self, module):
         self._modules[str(len(self._modules))] = module
         return self
@@ -38,12 +39,16 @@ class Sequential(torch.nn.Sequential):
         for module in self._modules.values():
             if isinstance(module, Sequential):
                 input = module.reweight(input)
-            elif hasattr(input, 'features') and hasattr(module, 'weight') and hasattr(module, 'bias'):
+            elif (
+                hasattr(input, "features")
+                and hasattr(module, "weight")
+                and hasattr(module, "bias")
+            ):
                 f = module(input).features
                 f = f - module.bias
                 s = f.std(0)
                 f = f / s
-                module.weight = torch.nn.Parameter(module.weight/s)
+                module.weight = torch.nn.Parameter(module.weight / s)
                 module.bias = torch.nn.Parameter(-f.mean(0))
                 input = module(input)
             else:
@@ -54,7 +59,7 @@ class Sequential(torch.nn.Sequential):
         for module in self._modules.values():
             if isinstance(module, Sequential):
                 input = module.reweight(input)
-            elif hasattr(input, 'features') and hasattr(module, 'bias'):
+            elif hasattr(input, "features") and hasattr(module, "bias"):
                 f = module(input).features
                 f = f - module.bias
                 module.bias = torch.nn.Parameter(-f.mean(0))
@@ -63,11 +68,13 @@ class Sequential(torch.nn.Sequential):
                 input = module(input)
         return input
 
+
 class CheckpointedSequential(Sequential):
     def forward(self, x):
         def run(x):
-            return Sequential.forward(self,x)
-        if hasattr(x,'metadata'):
+            return Sequential.forward(self, x)
+
+        if hasattr(x, "metadata"):
             return checkpoint101(run, x)
         else:
             return torch.utils.checkpoint.checkpoint(run, x)

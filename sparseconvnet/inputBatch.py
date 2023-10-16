@@ -25,11 +25,13 @@ class InputBatch(SparseConvNetTensor):
     def set_location(self, location, vector, overwrite=False):
         assert location.min() >= 0 and (self.spatial_size - location).min() > 0
         self.metadata.setInputSpatialLocation(
-            self.features, location.contiguous(), vector.contiguous(), overwrite)
+            self.features, location.contiguous(), vector.contiguous(), overwrite
+        )
 
     def set_location_(self, location, vector, overwrite=False):
         self.metadata.setInputSpatialLocation(
-            self.features, location, vector, overwrite)
+            self.features, location, vector, overwrite
+        )
 
     def set_locations(self, locations, vectors, overwrite=False):
         """
@@ -50,22 +52,21 @@ class InputBatch(SparseConvNetTensor):
           to add point (1,2,3) to sample 7, and (4,5,6) to sample 9 (0-indexed).
 
         """
-        l = locations[:, :self.dimension]
+        l = locations[:, : self.dimension]
         assert l.min() >= 0 and (self.spatial_size.expand_as(l) - l).min() > 0
         self.metadata.setInputSpatialLocations(
-            self.features, locations.contiguous(), vectors.contiguous(), overwrite)
+            self.features, locations.contiguous(), vectors.contiguous(), overwrite
+        )
 
     def set_locations_(self, locations, vectors, overwrite=False):
         self.metadata.setInputSpatialLocations(
-            self.features, locations, vectors, overwrite)
+            self.features, locations, vectors, overwrite
+        )
 
     def add_sample_from_tensor(self, tensor, offset, threshold=0):
         self.metadata.addSampleFromThresholdedTensor(
-            self.features,
-            tensor,
-            offset,
-            self.spatial_size,
-            threshold)
+            self.features, tensor, offset, self.spatial_size, threshold
+        )
 
     def precompute_metadata(self, size):
         """
@@ -76,39 +77,41 @@ class InputBatch(SparseConvNetTensor):
         """
         if size == 2:
             self.metadata.generateRuleBooks2s2()
-        if size == 3 :
+        if size == 3:
             self.metadata.generateRuleBooks3s2()
 
     "Deprecated method names."
+
     def addSample(self):
         self.metadata.batchAddSample()
 
     def setLocation(self, location, vector, overwrite=False):
         assert location.min() >= 0 and (self.spatial_size - location).min() > 0
         self.metadata.setInputSpatialLocation(
-            self.features, location, vector, overwrite)
+            self.features, location, vector, overwrite
+        )
 
     def setLocation_(self, location, vector, overwrite=False):
         self.metadata.setInputSpatialLocation(
-            self.features, location, vector, overwrite)
+            self.features, location, vector, overwrite
+        )
 
     def setLocations(self, locations, vectors, overwrite=False):
-        l = locations[:, :self.dimension]
+        l = locations[:, : self.dimension]
         assert l.min() >= 0 and (self.spatial_size.expand_as(l) - l).min() > 0
         self.metadata.setInputSpatialLocations(
-            self.features, locations, vectors, overwrite)
+            self.features, locations, vectors, overwrite
+        )
 
     def setLocations_(self, locations, vector, overwrite=False):
         self.metadata.setInputSpatialLocations(
-            self.features, locations, vectors, overwrite)
+            self.features, locations, vectors, overwrite
+        )
 
     def addSampleFromTensor(self, tensor, offset, threshold=0):
         self.metadata.addSampleFromThresholdedTensor(
-            self.features,
-            tensor,
-            offset,
-            self.spatial_size,
-            threshold)
+            self.features, tensor, offset, self.spatial_size, threshold
+        )
 
     def precomputeMetadata(self, size):
         """
@@ -119,5 +122,5 @@ class InputBatch(SparseConvNetTensor):
         """
         if size == 2:
             self.metadata.generateRuleBooks2s2()
-        if size == 3 :
+        if size == 3:
             self.metadata.generateRuleBooks3s2()

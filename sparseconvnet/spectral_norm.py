@@ -7,26 +7,29 @@ import torch
 from torch.nn.functional import normalize
 from torch.nn.parameter import Parameter
 
-class SpectralNorm(object):
 
-    def __init__(self, name='weight', n_power_iterations=1, dim=0, eps=1e-12, norm=1):
+class SpectralNorm(object):
+    def __init__(self, name="weight", n_power_iterations=1, dim=0, eps=1e-12, norm=1):
         self.name = name
         self.dim = dim
         self.norm = norm
         if n_power_iterations <= 0:
-            raise ValueError('Expected n_power_iterations to be positive, but '
-                             'got n_power_iterations={}'.format(n_power_iterations))
+            raise ValueError(
+                "Expected n_power_iterations to be positive, but "
+                "got n_power_iterations={}".format(n_power_iterations)
+            )
         self.n_power_iterations = n_power_iterations
         self.eps = eps
 
     def compute_weight(self, module):
-        weight = getattr(module, self.name + '_orig')
-        u = getattr(module, self.name + '_u')
-        weight_mat = weight #/ self.norm
+        weight = getattr(module, self.name + "_orig")
+        u = getattr(module, self.name + "_u")
+        weight_mat = weight  # / self.norm
         if self.dim != 0:
             # permute dim to front
-            weight_mat = weight_mat.permute(self.dim,
-                                            *[d for d in range(weight_mat.dim()) if d != self.dim])
+            weight_mat = weight_mat.permute(
+                self.dim, *[d for d in range(weight_mat.dim()) if d != self.dim]
+            )
         height = weight_mat.size(0)
         weight_mat = weight_mat.reshape(height, -1)
         with torch.no_grad():
@@ -44,17 +47,17 @@ class SpectralNorm(object):
     def remove(self, module):
         weight = getattr(module, self.name)
         delattr(module, self.name)
-        delattr(module, self.name + '_u')
-        delattr(module, self.name + '_orig')
+        delattr(module, self.name + "_u")
+        delattr(module, self.name + "_orig")
         module.register_parameter(self.name, torch.nn.Parameter(weight))
 
     def __call__(self, module, inputs):
         if module.training:
             weight, u = self.compute_weight(module)
             setattr(module, self.name, weight)
-            setattr(module, self.name + '_u', u)
+            setattr(module, self.name + "_u", u)
         else:
-            r_g = getattr(module, self.name + '_orig').requires_grad
+            r_g = getattr(module, self.name + "_orig").requires_grad
             getattr(module, self.name).detach_().requires_grad_(r_g)
 
     @staticmethod
@@ -78,10 +81,11 @@ class SpectralNorm(object):
         module.register_forward_pre_hook(fn)
         return fn
 
+
 def spectral_norm(module, n_power_iterations=1, eps=1e-12, norm=1):
     """
     https://github.com/pytorch/pytorch/blob/master/torch/nn/utils/spectral_norm.py
     """
-    dim=module.weight.ndimension()-1
-    SpectralNorm.apply(module, 'weight', n_power_iterations, dim, eps, norm)
+    dim = module.weight.ndimension() - 1
+    SpectralNorm.apply(module, "weight", n_power_iterations, dim, eps, norm)
     return module

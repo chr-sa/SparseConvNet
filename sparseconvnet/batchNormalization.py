@@ -10,6 +10,7 @@ from torch.nn import Module, Parameter
 from .utils import *
 from .sparseConvNetTensor import SparseConvNetTensor
 
+
 class BatchNormalization(Module):
     """
     Parameters:
@@ -21,13 +22,8 @@ class BatchNormalization(Module):
     leakiness : Apply activation def inplace: 0<=leakiness<=1.
     0 for ReLU, values in (0,1) for LeakyReLU, 1 for no activation def.
     """
-    def __init__(
-            self,
-            nPlanes,
-            eps=1e-4,
-            momentum=0.99,
-            affine=True,
-            leakiness=1):
+
+    def __init__(self, nPlanes, eps=1e-4, momentum=0.99, affine=True, leakiness=1):
         Module.__init__(self)
         self.nPlanes = nPlanes
         self.eps = eps
@@ -43,31 +39,43 @@ class BatchNormalization(Module):
     def forward(self, input):
         if input.features.nelement() == 0:
             return input
-        assert input.features.size(1) == self.nPlanes, (self.nPlanes, input.features.shape)
+        assert input.features.size(1) == self.nPlanes, (
+            self.nPlanes,
+            input.features.shape,
+        )
         output = SparseConvNetTensor()
         output.metadata = input.metadata
         output.spatial_size = input.spatial_size
         output.features = BatchNormalizationFunction.apply(
             input.features,
-            optionalTensor(self, 'weight'),
-            optionalTensor(self, 'bias'),
+            optionalTensor(self, "weight"),
+            optionalTensor(self, "bias"),
             self.running_mean,
             self.running_var,
             self.eps,
             self.momentum,
             self.training,
-            self.leakiness)
+            self.leakiness,
+        )
         return output
 
     def input_spatial_size(self, out_size):
         return out_size
 
     def __repr__(self):
-        s = 'BatchNorm(' + str(self.nPlanes) + ',eps=' + str(self.eps) + \
-            ',momentum=' + str(self.momentum) + ',affine=' + str(self.affine)
+        s = (
+            "BatchNorm("
+            + str(self.nPlanes)
+            + ",eps="
+            + str(self.eps)
+            + ",momentum="
+            + str(self.momentum)
+            + ",affine="
+            + str(self.affine)
+        )
         if self.leakiness > 0:
-            s = s + ',leakiness=' + str(self.leakiness)
-        s = s + ')'
+            s = s + ",leakiness=" + str(self.leakiness)
+        s = s + ")"
         return s
 
 
@@ -76,8 +84,17 @@ class BatchNormReLU(BatchNormalization):
         BatchNormalization.__init__(self, nPlanes, eps, momentum, True, 0)
 
     def __repr__(self):
-        s = 'BatchNormReLU(' + str(self.nPlanes) + ',eps=' + str(self.eps) + \
-            ',momentum=' + str(self.momentum) + ',affine=' + str(self.affine) + ')'
+        s = (
+            "BatchNormReLU("
+            + str(self.nPlanes)
+            + ",eps="
+            + str(self.eps)
+            + ",momentum="
+            + str(self.momentum)
+            + ",affine="
+            + str(self.affine)
+            + ")"
+        )
         return s
 
 
@@ -86,23 +103,36 @@ class BatchNormLeakyReLU(BatchNormalization):
         BatchNormalization.__init__(self, nPlanes, eps, momentum, True, leakiness)
 
     def __repr__(self):
-        s = 'BatchNormLeakyReLU(' + str(self.nPlanes) + ',eps=' + str(self.eps) + \
-            ',momentum=' + str(self.momentum) + ',affine=' + str(self.affine) + ',leakiness='+str(self.leakiness)+')'
+        s = (
+            "BatchNormLeakyReLU("
+            + str(self.nPlanes)
+            + ",eps="
+            + str(self.eps)
+            + ",momentum="
+            + str(self.momentum)
+            + ",affine="
+            + str(self.affine)
+            + ",leakiness="
+            + str(self.leakiness)
+            + ")"
+        )
         return s
+
 
 class BatchNormalizationFunction(Function):
     @staticmethod
     def forward(
-            ctx,
-            input_features,
-            weight,
-            bias,
-            running_mean,
-            running_var,
-            eps,
-            momentum,
-            train,
-            leakiness):
+        ctx,
+        input_features,
+        weight,
+        bias,
+        running_mean,
+        running_var,
+        eps,
+        momentum,
+        train,
+        leakiness,
+    ):
         ctx.nPlanes = running_mean.shape[0]
         ctx.train = train
         ctx.leakiness = leakiness
@@ -121,27 +151,32 @@ class BatchNormalizationFunction(Function):
             eps,
             momentum,
             ctx.train,
-            ctx.leakiness)
-        ctx.save_for_backward(input_features,
-                              output_features,
-                              weight,
-                              bias,
-                              running_mean,
-                              running_var,
-                              saveMean,
-                              saveInvStd)
+            ctx.leakiness,
+        )
+        ctx.save_for_backward(
+            input_features,
+            output_features,
+            weight,
+            bias,
+            running_mean,
+            running_var,
+            saveMean,
+            saveInvStd,
+        )
         return output_features
 
     @staticmethod
     def backward(ctx, grad_output):
-        input_features,\
-            output_features,\
-            weight,\
-            bias,\
-            running_mean,\
-            running_var,\
-            saveMean,\
-            saveInvStd = ctx.saved_tensors
+        (
+            input_features,
+            output_features,
+            weight,
+            bias,
+            running_mean,
+            running_var,
+            saveMean,
+            saveInvStd,
+        ) = ctx.saved_tensors
         assert ctx.train
         grad_input = grad_output.new()
         grad_weight = torch.zeros_like(weight)
@@ -159,8 +194,20 @@ class BatchNormalizationFunction(Function):
             bias,
             grad_weight,
             grad_bias,
-            ctx.leakiness)
-        return grad_input, optionalTensorReturn(grad_weight), optionalTensorReturn(grad_bias), None, None, None, None, None, None
+            ctx.leakiness,
+        )
+        return (
+            grad_input,
+            optionalTensorReturn(grad_weight),
+            optionalTensorReturn(grad_bias),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+
 
 class MeanOnlyBNLeakyReLU(Module):
     """
@@ -170,12 +217,8 @@ class MeanOnlyBNLeakyReLU(Module):
     leakiness : Apply activation def inplace: 0<=leakiness<=1.
     0 for ReLU, values in (0,1) for LeakyReLU, 1 for no activation def.
     """
-    def __init__(
-            self,
-            nPlanes,
-            affine=True,
-            leakiness=1,
-            momentum=0.99):
+
+    def __init__(self, nPlanes, affine=True, leakiness=1, momentum=0.99):
         Module.__init__(self)
         self.nPlanes = nPlanes
         self.momentum = momentum
@@ -184,6 +227,7 @@ class MeanOnlyBNLeakyReLU(Module):
         if affine:
             self.bias = Parameter(torch.Tensor(nPlanes).fill_(0))
         self.leakiness = leakiness
+
     def forward(self, input):
         assert input.features.nelement() == 0 or input.features.size(1) == self.nPlanes
         output = SparseConvNetTensor()
@@ -191,28 +235,39 @@ class MeanOnlyBNLeakyReLU(Module):
         output.spatial_size = input.spatial_size
         if self.training:
             with torch.no_grad():
-                m=input.features.mean(0)
-                self.running_mean=self.running_mean*self.momentum+m*(1-self.momentum)
+                m = input.features.mean(0)
+                self.running_mean = self.running_mean * self.momentum + m * (
+                    1 - self.momentum
+                )
             output.features = input.features - m
         else:
             output.features = input.features - self.running_mean
         if self.affine:
             output_features = output_features + self.bias
         if self.leakiness != 1:
-            output.features = torch.nn.functional.leaky_relu(output.features, self.leakiness)
+            output.features = torch.nn.functional.leaky_relu(
+                output.features, self.leakiness
+            )
         return output
 
     def input_spatial_size(self, out_size):
         return out_size
 
     def __repr__(self):
-        s = 'MeanOnlyBatchNorm(' + str(self.nPlanes) + ',momentum=' + str(self.momentum) + ',leakiness=' + str(self.leakiness) + ')'
+        s = (
+            "MeanOnlyBatchNorm("
+            + str(self.nPlanes)
+            + ",momentum="
+            + str(self.momentum)
+            + ",leakiness="
+            + str(self.leakiness)
+            + ")"
+        )
         return s
 
 
 class SparseGroupNorm(torch.nn.GroupNorm):
-    def forward(self,x):
+    def forward(self, x):
         return scn.SparseConvNetTensor(
-            super().forward(x.features),
-            x.metadata,
-            x.spatial_size)
+            super().forward(x.features), x.metadata, x.spatial_size
+        )

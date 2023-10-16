@@ -11,18 +11,20 @@ from .utils import *
 from .sparseConvNetTensor import SparseConvNetTensor
 from .maxPooling import MaxPoolingFunction
 
+
 class RandomizedStrideMaxPoolingFunction(Function):
     @staticmethod
     def forward(
-            ctx,
-            input_features,
-            input_metadata,
-            input_spatial_size,
-            output_spatial_size,
-            dimension,
-            pool_size,
-            pool_stride,
-            nFeaturesToDrop):
+        ctx,
+        input_features,
+        input_metadata,
+        input_spatial_size,
+        output_spatial_size,
+        dimension,
+        pool_size,
+        pool_stride,
+        nFeaturesToDrop,
+    ):
         ctx.input_metadata = input_metadata
         ctx.dimension = dimension
         ctx.nFeaturesToDrop = nFeaturesToDrop
@@ -35,24 +37,28 @@ class RandomizedStrideMaxPoolingFunction(Function):
             input_metadata,
             input_features,
             output_features,
-            nFeaturesToDrop)
+            nFeaturesToDrop,
+        )
         ctx.save_for_backward(
             input_features,
             output_features,
             input_spatial_size,
             output_spatial_size,
             pool_size,
-            pool_stride)
+            pool_stride,
+        )
         return output_features
 
     @staticmethod
     def backward(ctx, grad_output):
-        input_features,\
-            output_features,\
-            input_spatial_size,\
-            output_spatial_size,\
-            pool_size,\
-            pool_stride = ctx.saved_tensors
+        (
+            input_features,
+            output_features,
+            input_spatial_size,
+            output_spatial_size,
+            pool_size,
+            pool_stride,
+        ) = ctx.saved_tensors
         grad_input = grad_output.new()
         sparseconvnet.SCN.RandomizedStrideMaxPooling_updateGradInput(
             input_spatial_size,
@@ -64,7 +70,8 @@ class RandomizedStrideMaxPoolingFunction(Function):
             grad_input,
             output_features,
             grad_output,
-            ctx.nFeaturesToDrop)
+            ctx.nFeaturesToDrop,
+        )
         return grad_input, None, None, None, None, None, None, None
 
 
@@ -79,11 +86,16 @@ class RandomizedStrideMaxPooling(Module):
     def forward(self, input):
         output = SparseConvNetTensor()
         output.metadata = input.metadata
-        output.spatial_size = (
-            input.spatial_size - self.pool_size).div(self.pool_stride, rounding_mode='trunc') + 1
-        assert ((output.spatial_size - 1) * self.pool_stride +
-                self.pool_size == input.spatial_size).all()
-        output.features = (RandomizedStrideMaxPoolingFunction if self.training else MaxPoolingFunction).apply(
+        output.spatial_size = (input.spatial_size - self.pool_size).div(
+            self.pool_stride, rounding_mode="trunc"
+        ) + 1
+        assert (
+            (output.spatial_size - 1) * self.pool_stride + self.pool_size
+            == input.spatial_size
+        ).all()
+        output.features = (
+            RandomizedStrideMaxPoolingFunction if self.training else MaxPoolingFunction
+        ).apply(
             input.features,
             input.metadata,
             input.spatial_size,
@@ -91,27 +103,34 @@ class RandomizedStrideMaxPooling(Module):
             self.dimension,
             self.pool_size,
             self.pool_stride,
-            self.nFeaturesToDrop)
+            self.nFeaturesToDrop,
+        )
         return output
 
     def input_spatial_size(self, out_size):
         return (out_size - 1) * self.pool_stride + self.pool_size
 
     def __repr__(self):
-        s = 'RandomizedStrideMaxPooling'
-        if self.pool_size.max().item() == self.pool_size.min().item() and\
-                self.pool_stride.max().item() == self.pool_stride.min().item():
-            s = s + str(self.pool_size[0].item()) + \
-                '/' + str(self.pool_stride[0].item())
+        s = "RandomizedStrideMaxPooling"
+        if (
+            self.pool_size.max().item() == self.pool_size.min().item()
+            and self.pool_stride.max().item() == self.pool_stride.min().item()
+        ):
+            s = (
+                s
+                + str(self.pool_size[0].item())
+                + "/"
+                + str(self.pool_stride[0].item())
+            )
         else:
-            s = s + '(' + str(self.pool_size[0].item())
+            s = s + "(" + str(self.pool_size[0].item())
             for i in self.pool_size[1:]:
-                s = s + ',' + str(i.item())
-            s = s + ')/(' + str(self.pool_stride[0].item())
+                s = s + "," + str(i.item())
+            s = s + ")/(" + str(self.pool_stride[0].item())
             for i in self.pool_stride[1:]:
-                s = s + ',' + str(i.item())
-            s = s + ')'
+                s = s + "," + str(i.item())
+            s = s + ")"
 
         if self.nFeaturesToDrop > 0:
-            s = s + ' nFeaturesToDrop = ' + self.nFeaturesToDrop
+            s = s + " nFeaturesToDrop = " + self.nFeaturesToDrop
         return s

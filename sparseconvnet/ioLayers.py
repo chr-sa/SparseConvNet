@@ -37,6 +37,7 @@ class InputLayer(Module):
 
     Output is a SparseConvNetTensor
     """
+
     def __init__(self, dimension, spatial_size, mode=3):
         Module.__init__(self)
         self.dimension = dimension
@@ -45,14 +46,13 @@ class InputLayer(Module):
         self.device = None
 
     def to(self, device):
-        self.device=device
+        self.device = device
         return self
 
     def forward(self, input):
         output = SparseConvNetTensor(
-            metadata=Metadata(
-                self.dimension),
-            spatial_size=self.spatial_size)
+            metadata=Metadata(self.dimension), spatial_size=self.spatial_size
+        )
         output.features = InputLayerFunction.apply(
             self.dimension,
             output.metadata,
@@ -60,7 +60,7 @@ class InputLayer(Module):
             input[0].cpu().long(),
             input[1].to(self.device) if self.device else input[1],
             0 if len(input) == 2 else input[2],
-            self.mode
+            self.mode,
         )
         return output
 
@@ -76,15 +76,14 @@ class OutputLayer(Module):
 
     Behavior during forward-/back-propagation depends on the InputLayer's mode
     """
+
     def __init__(self, dimension):
         Module.__init__(self)
         self.dimension = dimension
 
     def forward(self, input):
         output = OutputLayerFunction.apply(
-            self.dimension,
-            input.metadata,
-            input.features
+            self.dimension, input.metadata, input.features
         )
         return output
 
@@ -109,6 +108,7 @@ class BLInputLayer(Module):
 
     Output is a SparseConvNetTensor
     """
+
     def __init__(self, dimension, spatial_size, mode=3):
         Module.__init__(self)
         self.dimension = dimension
@@ -117,21 +117,20 @@ class BLInputLayer(Module):
         self.device = None
 
     def to(self, device):
-        self.device=device
+        self.device = device
         return self
 
     def forward(self, input):
         output = SparseConvNetTensor(
-            metadata=Metadata(
-                self.dimension),
-            spatial_size=self.spatial_size)
+            metadata=Metadata(self.dimension), spatial_size=self.spatial_size
+        )
         output.features = BLInputLayerFunction.apply(
             self.dimension,
             output.metadata,
             self.spatial_size,
             input[0].cpu().long(),
             input[1].to(self.device) if self.device else input[1],
-            self.mode
+            self.mode,
         )
         return output
 
@@ -147,15 +146,14 @@ class BLOutputLayer(Module):
 
     Behavior during forward-/back-propagation depends on the BLInputLayer's mode
     """
+
     def __init__(self, dimension):
         Module.__init__(self)
         self.dimension = dimension
 
     def forward(self, input):
         output = BLOutputLayerFunction.apply(
-            self.dimension,
-            input.metadata,
-            input.features
+            self.dimension, input.metadata, input.features
         )
         return output
 
@@ -163,14 +161,8 @@ class BLOutputLayer(Module):
 class InputLayerFunction(Function):
     @staticmethod
     def forward(
-            ctx,
-            dimension,
-            metadata,
-            spatial_size,
-            coords,
-            input_features,
-            batch_size,
-            mode):
+        ctx, dimension, metadata, spatial_size, coords, input_features, batch_size, mode
+    ):
         output_features = input_features.new()
         ctx.dimension = dimension
         ctx.metadata_ = metadata
@@ -181,7 +173,7 @@ class InputLayerFunction(Function):
             input_features.contiguous(),
             output_features,
             batch_size,
-            mode
+            mode,
         )
         return output_features
 
@@ -189,50 +181,35 @@ class InputLayerFunction(Function):
     def backward(ctx, grad_output):
         grad_input = grad_output.new()
         sparseconvnet.SCN.InputLayer_updateGradInput(
-            ctx.metadata_,
-            grad_input,
-            grad_output.contiguous())
+            ctx.metadata_, grad_input, grad_output.contiguous()
+        )
         return None, None, None, None, grad_input, None, None
 
 
 class OutputLayerFunction(Function):
     @staticmethod
-    def forward(
-            ctx,
-            dimension,
-            metadata,
-            input_features):
+    def forward(ctx, dimension, metadata, input_features):
         output_features = input_features.new()
         ctx.metadata_ = metadata
         ctx.dimension = dimension
         sparseconvnet.SCN.OutputLayer_updateOutput(
-            metadata,
-            input_features.contiguous(),
-            output_features
+            metadata, input_features.contiguous(), output_features
         )
         return output_features
 
     @staticmethod
     def backward(ctx, grad_output):
         grad_input = grad_output.new()
-        grad_output=grad_output.contiguous()
+        grad_output = grad_output.contiguous()
         sparseconvnet.SCN.OutputLayer_updateGradInput(
-            ctx.metadata_,
-            grad_input,
-            grad_output.contiguous())
+            ctx.metadata_, grad_input, grad_output.contiguous()
+        )
         return None, None, grad_input
 
 
 class BLInputLayerFunction(Function):
     @staticmethod
-    def forward(
-            ctx,
-            dimension,
-            metadata,
-            spatial_size,
-            coords,
-            input_features,
-            mode):
+    def forward(ctx, dimension, metadata, spatial_size, coords, input_features, mode):
         output_features = input_features.new()
         ctx.metadata_ = metadata
         ctx.dimension = dimension
@@ -242,7 +219,7 @@ class BLInputLayerFunction(Function):
             coords,
             input_features.contiguous(),
             output_features,
-            mode
+            mode,
         )
         return output_features
 
@@ -250,26 +227,19 @@ class BLInputLayerFunction(Function):
     def backward(ctx, grad_output):
         grad_input = grad_output.new()
         sparseconvnet.SCN.BLInputLayer_updateGradInput(
-            ctx.metadata_,
-            grad_input,
-            grad_output.contiguous())
+            ctx.metadata_, grad_input, grad_output.contiguous()
+        )
         return None, None, None, None, grad_input, None
 
 
 class BLOutputLayerFunction(Function):
     @staticmethod
-    def forward(
-            ctx,
-            dimension,
-            metadata,
-            input_features):
+    def forward(ctx, dimension, metadata, input_features):
         output_features = input_features.new()
         ctx.metadata_ = metadata
         ctx.dimension = dimension
         sparseconvnet.SCN.BLOutputLayer_updateOutput(
-            metadata,
-            input_features.contiguous(),
-            output_features
+            metadata, input_features.contiguous(), output_features
         )
         return output_features
 
@@ -277,18 +247,21 @@ class BLOutputLayerFunction(Function):
     def backward(ctx, grad_output):
         grad_input = grad_output.new()
         sparseconvnet.SCN.BLOutputLayer_updateGradInput(
-            ctx.metadata_,
-            grad_input,
-            grad_output.contiguous())
+            ctx.metadata_, grad_input, grad_output.contiguous()
+        )
         return None, None, grad_input
 
+
 class InputLayerInput(object):
-    def __init__(self,coords,features):
-        self.x=[coords,features]
-    def __getitem__(self,n):
+    def __init__(self, coords, features):
+        self.x = [coords, features]
+
+    def __getitem__(self, n):
         return self.x[n]
+
     def __len__(self):
         return 2
+
     def cuda(self):
-        self.x[1]=self.x[1].cuda()
+        self.x[1] = self.x[1].cuda()
         return self

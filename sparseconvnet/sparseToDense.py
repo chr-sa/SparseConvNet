@@ -24,23 +24,14 @@ from .sparseConvNetTensor import SparseConvNetTensor
 
 class SparseToDenseFunction(Function):
     @staticmethod
-    def forward(
-            ctx,
-            input_features,
-            input_metadata,
-            spatial_size,
-            dimension,
-            nPlanes):
+    def forward(ctx, input_features, input_metadata, spatial_size, dimension, nPlanes):
         ctx.input_metadata = input_metadata
         ctx.dimension = dimension
         ctx.save_for_backward(input_features, spatial_size)
         output = input_features.new()
         sparseconvnet.SCN.SparseToDense_updateOutput(
-            spatial_size,
-            input_metadata,
-            input_features,
-            output,
-            nPlanes)
+            spatial_size, input_metadata, input_features, output, nPlanes
+        )
         return output
 
     @staticmethod
@@ -52,7 +43,8 @@ class SparseToDenseFunction(Function):
             ctx.input_metadata,
             input_features,
             grad_input,
-            grad_output.contiguous())
+            grad_output.contiguous(),
+        )
         return grad_input, None, None, None, None
 
 
@@ -68,11 +60,11 @@ class SparseToDense(Module):
             input.metadata,
             input.spatial_size,
             self.dimension,
-            self.nPlanes)
+            self.nPlanes,
+        )
 
     def input_spatial_size(self, out_size):
         return out_size
 
     def __repr__(self):
-        return 'SparseToDense(' + str(self.dimension) + \
-            ',' + str(self.nPlanes) + ')'
+        return "SparseToDense(" + str(self.dimension) + "," + str(self.nPlanes) + ")"

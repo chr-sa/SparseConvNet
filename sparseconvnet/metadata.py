@@ -13,5 +13,6 @@ only occurs once.
 
 import sparseconvnet.SCN
 
+
 def Metadata(dim):
-    return getattr(sparseconvnet.SCN, 'Metadata_%d'%dim)()
+    return getattr(sparseconvnet.SCN, "Metadata_%d" % dim)()

@@ -11,33 +11,37 @@ from torch.nn import Module, Parameter
 from .utils import *
 from .sparseConvNetTensor import SparseConvNetTensor
 
+
 def permutohedral_basis(dimension):
     """
     Calculate two matrices: a, a_inverse
     Use torch.mm(coordinates, a_inverse) to map into permutohedral coordinates space, before input goes to SparseConvNet
     """
-    a=torch.zeros(dimension,dimension)
+    a = torch.zeros(dimension, dimension)
     for i in range(dimension):
         for j in range(i):
-            dp=(a[i,:]*a[j,:]).sum()
-            a[i,j]=(0.5-dp)/a[j,j]
-        dp=(a[i,:]*a[i,:]).sum()
-        a[i,i]=(1-dp)**0.5
-    ai=torch.inverse(a)
+            dp = (a[i, :] * a[j, :]).sum()
+            a[i, j] = (0.5 - dp) / a[j, j]
+        dp = (a[i, :] * a[i, :]).sum()
+        a[i, i] = (1 - dp) ** 0.5
+    ai = torch.inverse(a)
     return a, ai
+
 
 class PermutohedralSubmanifoldConvolution(Module):
     def __init__(self, dimension, nIn, nOut, bias, groups=1):
         Module.__init__(self)
         self.dimension = dimension
-        self.groups=groups
+        self.groups = groups
         self.nIn = nIn
         self.nOut = nOut
         self.filter_volume = dimension**2 + dimension + 1
-        std = (2.0 / nIn / self.filter_volume)**0.5
-        self.weight = Parameter(torch.Tensor(
-            self.filter_volume, groups, nIn//groups, nOut//groups
-        ).normal_(0, std))
+        std = (2.0 / nIn / self.filter_volume) ** 0.5
+        self.weight = Parameter(
+            torch.Tensor(
+                self.filter_volume, groups, nIn // groups, nOut // groups
+            ).normal_(0, std)
+        )
         if bias:
             self.bias = Parameter(torch.Tensor(nOut).zero_())
 
@@ -49,14 +53,15 @@ class PermutohedralSubmanifoldConvolution(Module):
         output.features = PermutohedralSubmanifoldConvolutionFunction.apply(
             input.features,
             self.weight,
-            optionalTensor(self, 'bias'),
+            optionalTensor(self, "bias"),
             input.metadata,
             input.spatial_size,
-            self.dimension)
+            self.dimension,
+        )
         return output
 
     def __repr__(self):
-        s = 'PermutohedralSubmanifoldConvolution'
+        s = "PermutohedralSubmanifoldConvolution"
         return s
 
     def input_spatial_size(self, out_size):
@@ -66,30 +71,23 @@ class PermutohedralSubmanifoldConvolution(Module):
 class PermutohedralSubmanifoldConvolutionFunction(Function):
     @staticmethod
     def forward(
-            ctx,
-            input_features,
-            weight,
-            bias,
-            input_metadata,
-            spatial_size,
-            dimension):
+        ctx, input_features, weight, bias, input_metadata, spatial_size, dimension
+    ):
         ctx.input_metadata = input_metadata
         ctx.dimension = dimension
         output_features = input_features.new()
-        ctx.save_for_backward(
-            input_features,
-            spatial_size,
-            weight,
-            bias)
+        ctx.save_for_backward(input_features, spatial_size, weight, bias)
 
-        sparseconvnet.forward_pass_multiplyAdd_count +=\
+        sparseconvnet.forward_pass_multiplyAdd_count += (
             sparseconvnet.SCN.PermutohedralSubmanifoldConvolution_updateOutput(
                 spatial_size,
                 input_metadata,
                 input_features,
                 output_features,
                 weight,
-                bias)
+                bias,
+            )
+        )
         sparseconvnet.forward_pass_hidden_states += output_features.nelement()
         return output_features
 
@@ -107,5 +105,14 @@ class PermutohedralSubmanifoldConvolutionFunction(Function):
             grad_output.contiguous(),
             weight,
             grad_weight,
-            grad_bias)
-        return grad_input, grad_weight, optionalTensorReturn(grad_bias), None, None, None, None
+            grad_bias,
+        )
+        return (
+            grad_input,
+            grad_weight,
+            optionalTensorReturn(grad_bias),
+            None,
+            None,
+            None,
+            None,
+        )

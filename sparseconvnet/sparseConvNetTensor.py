@@ -28,7 +28,7 @@ class SparseConvNetTensor(object):
         return t
 
     def to(self, device):
-        self.features=self.features.to(device)
+        self.features = self.features.to(device)
         return self
 
     def type(self, t=None):
@@ -46,18 +46,27 @@ class SparseConvNetTensor(object):
         return self
 
     def detach():
-        return SparseConvNetTensor(self.features.detach(), self.metadata, self.spatial_size)
-    
+        return SparseConvNetTensor(
+            self.features.detach(), self.metadata, self.spatial_size
+        )
+
     @property
     def requires_grad(self):
         return self.features.requires_grad
 
     def __repr__(self):
         sl = self.get_spatial_locations() if self.metadata else None
-        return 'SparseConvNetTensor<<' + \
-            'features=' + repr(self.features) + \
-            ',features.shape=' + repr(self.features.shape) + \
-            ',batch_locations=' + repr(sl) + \
-            ',batch_locations.shape=' + repr(sl.shape if self.metadata else None) + \
-            ',spatial size=' + repr(self.spatial_size) + \
-            '>>'
+        return (
+            "SparseConvNetTensor<<"
+            + "features="
+            + repr(self.features)
+            + ",features.shape="
+            + repr(self.features.shape)
+            + ",batch_locations="
+            + repr(sl)
+            + ",batch_locations.shape="
+            + repr(sl.shape if self.metadata else None)
+            + ",spatial size="
+            + repr(self.spatial_size)
+            + ">>"
+        )

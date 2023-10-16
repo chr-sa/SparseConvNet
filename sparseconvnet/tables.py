@@ -18,7 +18,11 @@ class JoinTable(torch.nn.Sequential):
         output = SparseConvNetTensor()
         output.metadata = input[0].metadata
         output.spatial_size = input[0].spatial_size
-        output.features = torch.cat([i.features for i in input], 1) if input[0].features.numel() else input[0].features
+        output.features = (
+            torch.cat([i.features for i in input], 1)
+            if input[0].features.numel()
+            else input[0].features
+        )
         return output
 
     def input_spatial_size(self, out_size):
@@ -52,4 +56,4 @@ class ConcatTable(torch.nn.Sequential):
         return self
 
     def input_spatial_size(self, out_size):
-        return self._modules['0'].input_spatial_size(out_size)
+        return self._modules["0"].input_spatial_size(out_size)

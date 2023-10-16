@@ -7,6 +7,7 @@
 import torch
 import os
 import pickle
+
 train = []
 test = []
 p = [
@@ -54,7 +55,8 @@ p = [
     26,
     6,
     16,
-    43]
+    43,
+]
 
 
 def rescaleCharacter(c):
@@ -63,27 +65,20 @@ def rescaleCharacter(c):
     s = (cc.max(0)[0] - m).float()
     for i in range(len(c)):
         c[i] = (
-            torch.div(
-                (c[i] -
-                 m.expand_as(
-                    c[i])).float(),
-                s.expand_as(
-                    c[i])) *
-            255.99).byte()
+            torch.div((c[i] - m.expand_as(c[i])).float(), s.expand_as(c[i])) * 255.99
+        ).byte()
     return c
 
 
 for char in range(1, 183 + 1):
     for writer in range(0, 36):
-        exec('c=' + open('tmp/' + str(char) + '.' +
-                         str(p[writer]) + '.py', 'r').read())
-        train.append({'input': rescaleCharacter(c), 'target': char})
+        exec("c=" + open("tmp/" + str(char) + "." + str(p[writer]) + ".py", "r").read())
+        train.append({"input": rescaleCharacter(c), "target": char})
 for char in range(1, 183 + 1):
     for writer in range(36, 45):
-        exec('c=' + open('tmp/' + str(char) + '.' +
-                         str(p[writer]) + '.py', 'r').read())
-        test.append({'input': rescaleCharacter(c), 'target': char})
+        exec("c=" + open("tmp/" + str(char) + "." + str(p[writer]) + ".py", "r").read())
+        test.append({"input": rescaleCharacter(c), "target": char})
 print(len(train), len(test))
-os.mkdir('pickle')
-pickle.dump(train, open('pickle/train.pickle', 'wb'))
-pickle.dump(test, open('pickle/test.pickle', 'wb'))
+os.mkdir("pickle")
+pickle.dump(train, open("pickle/train.pickle", "wb"))
+pickle.dump(test, open("pickle/test.pickle", "wb"))
